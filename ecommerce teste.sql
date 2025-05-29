@@ -1,65 +1,80 @@
 
-CREATE DATABASE ecommerce;
-USE ecommerce;
-CREATE TABLE clientes (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    nome VARCHAR(100) NOT NULL,
-    email VARCHAR(100) UNIQUE NOT NULL,
-    telefone VARCHAR(20)
-);
+SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, UNIQUE_CHECKS=0;
+SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0;
+SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION';
+
+CREATE SCHEMA IF NOT EXISTS `mydb` DEFAULT CHARACTER SET utf8mb4;
+USE `mydb`;
 
 
-CREATE TABLE produtos (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    nome VARCHAR(100) NOT NULL,
-    descricao LONGTEXT,
-    preco DECIMAL(10,2) NOT NULL,
-    estoque INT DEFAULT 0
-);
-
-CREATE TABLE categorias (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    nome VARCHAR(100) NOT NULL,
-    descricao LONGTEXT
-);
-
-CREATE TABLE produto_categoria (
-    produto_id INT NOT NULL,
-    categoria_id INT NOT NULL,
-    PRIMARY KEY (produto_id, categoria_id),
-    FOREIGN KEY (produto_id) REFERENCES produtos(id) ON DELETE CASCADE,
-    FOREIGN KEY (categoria_id) REFERENCES categorias(id) ON DELETE CASCADE
-);
-
-CREATE TABLE pedidos (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    cliente_id INT NOT NULL,
-    status VARCHAR(50) DEFAULT 'pendente',
-    FOREIGN KEY (cliente_id) REFERENCES clientes(id) ON DELETE CASCADE
-);
-
-CREATE TABLE pedido_produto (
-    pedido_id INT NOT NULL,
-    produto_id INT NOT NULL,
-    quantidade INT NOT NULL,
-    preco_unitario DECIMAL(10,2) NOT NULL,
-    PRIMARY KEY (pedido_id, produto_id),
-    FOREIGN KEY (pedido_id) REFERENCES pedidos(id) ON DELETE CASCADE,
-    FOREIGN KEY (produto_id) REFERENCES produtos(id) ON DELETE CASCADE
-);
+CREATE TABLE IF NOT EXISTS `clientes` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `nome` VARCHAR(100) NOT NULL,
+  `email` VARCHAR(45) NOT NULL UNIQUE,
+  `telefone` VARCHAR(11) NOT NULL UNIQUE,
+  `endereco` LONGTEXT NOT NULL,
+  `cpf` VARCHAR(14) NOT NULL UNIQUE
+) ENGINE=InnoDB;
 
 
-CREATE TABLE pagamentos (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    pedido_id INT NOT NULL UNIQUE,
-    valor DECIMAL(10,2) NOT NULL,
-    metodo_pagamento VARCHAR(50),
-    status VARCHAR(50),
-    data_pagamento TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (pedido_id) REFERENCES pedidos(id) ON DELETE CASCADE
-);
+CREATE TABLE IF NOT EXISTS `produtos` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `nome` VARCHAR(90) NOT NULL,
+  `descricao` LONGTEXT,
+  `preco` DECIMAL(10,2) NOT NULL,
+  `estoque` INT NOT NULL DEFAULT 0,
+  `ativo` TINYINT(1) NOT NULL DEFAULT 1
+) ENGINE=InnoDB;
 
 
-CREATE INDEX idx_email_cliente ON clientes(email);
-CREATE INDEX idx_nome_produto ON produtos(nome);
-CREATE INDEX idx_cliente_pedido ON pedidos(cliente_id);
+CREATE TABLE IF NOT EXISTS `categorias` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `nome` VARCHAR(45) NOT NULL,
+  `descricao` LONGTEXT
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS `pagamentos` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `valor_pago` DECIMAL(10,2) NOT NULL,
+  `metodo` VARCHAR(45) NOT NULL,
+  `status` VARCHAR(30) NOT NULL
+) ENGINE=InnoDB;
+
+
+CREATE TABLE IF NOT EXISTS `pedidos` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `status` VARCHAR(20) NOT NULL,
+  `valor_total` DECIMAL(10,2) NOT NULL,
+  `clientes_id` INT NOT NULL,
+  `valor_frete` DECIMAL(10,2) DEFAULT 0.00,
+  `endereco_entrega` JSON NOT NULL,
+  `pagamentos_id` INT NOT NULL,
+  FOREIGN KEY (`clientes_id`) REFERENCES `clientes` (`id`),
+  FOREIGN KEY (`pagamentos_id`) REFERENCES `pagamentos` (`id`)
+) ENGINE=InnoDB;
+
+
+CREATE TABLE IF NOT EXISTS `pedidos_produtos` (
+  `pedidos_id` INT NOT NULL,
+  `produtos_id` INT NOT NULL,
+  `quantidade` INT UNSIGNED NOT NULL,
+  `preco_unitario` DECIMAL(10,2) NOT NULL,
+  `preco_total` DECIMAL(10,2) NOT NULL,
+  PRIMARY KEY (`pedidos_id`, `produtos_id`),
+  FOREIGN KEY (`pedidos_id`) REFERENCES `pedidos` (`id`),
+  FOREIGN KEY (`produtos_id`) REFERENCES `produtos` (`id`)
+) ENGINE=InnoDB;
+
+
+CREATE TABLE IF NOT EXISTS `produtos_categorias` (
+  `produtos_id` INT NOT NULL,
+  `categorias_id` INT NOT NULL,
+  PRIMARY KEY (`produtos_id`, `categorias_id`),
+  FOREIGN KEY (`produtos_id`) REFERENCES `produtos` (`id`),
+  FOREIGN KEY (`categorias_id`) REFERENCES `categorias` (`id`)
+) ENGINE=InnoDB;
+
+
+SET SQL_MODE=@OLD_SQL_MODE;
+SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS;
+SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS;
